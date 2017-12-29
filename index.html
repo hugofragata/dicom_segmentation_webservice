@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <title>IPaaS Mammography</title>
+
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+</head>
+<body class="container">
+<br>
+<div class="alert alert-info" role="alert">
+  <h4 class="alert-heading">IPaaS Mammography</h4>
+  <p> A webservice for Image Processing of DICOM files of mammographies.</p>
+  <hr>
+  <p class="mb-0">
+      Browse the DICOM files and Upload them using the following buttons!<br>
+      To upload DICOM press the "Upload" button. <br>
+      To perform automatic segmentation of the image press the Process button. <br>
+      To download the DICOM files with segmentation (tag 0x00690069) press Download.
+  </p>
+</div>
+
+    <br>
+
+<div class="row">
+
+
+
+
+    <div class="col">
+        <br>
+        <form id='upload' action='' class="btn btn-primary">
+          <label for='fileselect'>Upload:</label>
+          <input type='file' id='fileselect' multiple='multiple' />
+        </form>
+    </div>
+
+    <!--
+    <div class="col">
+        <br>
+        <button type="button" class="btn btn-primary btn-lg" onclick="show_image()">Process</button>
+    </div>
+    -->
+
+
+    <div class="col">
+        <form>
+          <div class="form-group">
+            <input type="text" class="form-control" id="k_i" placeholder="K=30">
+          </div>
+          <div class="form-group">
+            <input type="text" class="form-control" id="dist_i" placeholder="dist=0.1">
+          </div>
+        </form>
+    </div>
+
+    <div class="col">
+        <br>
+        <button type="button" class="btn btn-primary btn-lg" onclick="tinker()">Tinker</button>
+    </div>
+
+    <div class="col">
+        <br>
+        <button type="button" class="btn btn-primary btn-lg" onclick="download_dicom()">Download</button>
+    </div>
+
+</div>
+
+
+
+
+        <script type='text/javascript'>
+            var filename =null;
+          function upload(file)
+          {
+            var xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener('progress', function(event)
+            {
+              console.log('progess', file.name, event.loaded, event.total);
+            });
+            xhr.addEventListener('readystatechange', function(event)
+            {
+              console.log(
+                'ready state',
+                file.name,
+                xhr.readyState,
+                xhr.readyState == 4 && xhr.status
+              );
+            });
+
+            xhr.open('POST', '/upload', true);
+            xhr.setRequestHeader('X-Filename', file.name);
+
+            console.log('sending', file.name, file);
+            xhr.send(file);
+            display_alert(file.name);
+            filename = file.name;
+            //setTimeout(show_image(file.name), 5000);
+          }
+
+          var select = document.getElementById('fileselect');
+          var form   = document.getElementById('upload')
+          select.addEventListener('change', function(event)
+          {
+            for(var i = 0; i < event.target.files.length; i += 1)
+            {
+              upload(event.target.files[i]);
+            }
+            form.reset();
+          });
+          
+          function display_alert(stri) {
+              var all = "<br><div class=\"alert alert-success alert-dismissible fade show\" role=\"alert\">\n" +
+                  "  <strong>Uploaded </strong>"+stri +"! \n" +
+                  "  <button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\">\n" +
+                  "    <span aria-hidden=\"true\">&times;</span>\n" +
+                  "  </button>\n" +
+                  "</div>";
+              $("#alertit").html(all);
+              console.log(all);
+          }
+
+          function show_image() {
+              var fl = filename.substring(0, filename.length - 4) + '.png';
+              var fl_cv = fl.substring(0, fl.length - 4) + '_cv.png' ;
+              var all = "<div class='col' ><img class='img-responsive' style='width: 100%;' src='/images/" +fl+"'/></div><div class='col' ><img class='img-responsive' style='width: 100%;' src='/images/" +fl_cv+"'/></div>";
+              $("#image_uploaded").html(all);
+              console.log(all);
+          }
+
+          function download_dicom() {
+              console.log('download called')
+              var fl = '/images/'+filename.substring(0, filename.length - 4) + '_seg.dcm';
+              document.getElementById('dl_iframe').src = fl;
+          }
+
+          function tinker() {
+              var fl = './images/'+filename.substring(0, filename.length - 4) + '.png';
+              var fl_cv = './images/'+fl.substring(0, fl.length - 4) + '_cv.png' ;
+              var postdata = {f: fl , k: $("#k_i").val(), dist: $("#dist_i").val()};
+              $.post('/tinker', postdata);
+              show_image();
+          }
+        </script>
+
+<div id="alertit"></div>
+
+<div id="image_uploaded" class="row" style="height: 420px"></div>
+<iframe id="dl_iframe" style="display:none;"></iframe>
+</body>
+</html>
